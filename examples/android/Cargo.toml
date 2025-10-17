@@ -1,0 +1,36 @@
+[package]
+name = "compo-platform-loop-android-example"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[package.metadata.android]
+java_sources = "src"
+package = "rust.compo"
+use_aapt2 = true
+
+[[package.metadata.android.application.activity]]
+label = "compo-platform-loop-example"
+name = ".MainActivity"
+
+[[package.metadata.android.application.activity.meta_data]]
+name="android.app.lib_name"
+# 省略value可以自动推断库名
+# value = "lib_name"
+
+[[package.metadata.android.application.activity.intent_filter]]
+actions = ["android.intent.action.VIEW", "android.intent.action.MAIN"]
+categories = ["android.intent.category.LAUNCHER"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+
+[target.'cfg(target_os = "android")'.dependencies]
+compo.workspace = true
+compo-platform-loop.path = "../../"
+jni.workspace = true
+tracing = {workspace = true,features = ["std"]}
+tracing-logcat.workspace = true
+tracing-subscriber.workspace = true

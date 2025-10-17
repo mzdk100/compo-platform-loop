@@ -1,0 +1,70 @@
+[package]
+name = "compo-platform-loop"
+description = "Cross-platform event loop implementation for the Compo declarative and reactive component framework"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[dependencies]
+compo.workspace = true
+tracing.workspace = true
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni.workspace = true
+
+[target.'cfg(windows)'.dependencies.windows]
+workspace = true
+features=["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_LibraryLoader", "Win32_UI_WindowsAndMessaging"]
+
+[target.'cfg(target_os = "ios")'.dependencies]
+block2.workspace = true
+objc2-foundation.workspace = true
+
+[target.'cfg(target_os = "ios")'.dependencies.objc2]
+workspace = true
+features = ["exception"]
+
+[target.'cfg(target_os = "macos")'.dependencies]
+block2.workspace = true
+objc2-foundation.workspace = true
+objc2-app-kit.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies.objc2]
+workspace = true
+features = ["exception"]
+
+[build-dependencies]
+encoding_rs.workspace = true
+
+[workspace.package]
+authors = ["SmileSky <mzdk100@qq.com>"]
+categories = ["asynchronous", "gui", "os"]
+edition = "2024"
+keywords = ["compo", "reactive", "declarative", "async", "loop"]
+license = "Apache-2.0"
+version = "0.1.0"
+repository = "https://github.com/mzdk100/compo-platform-loop.git"
+
+[workspace.dependencies]
+block2 = "0.6.2"
+compo = "0.1.1"
+encoding_rs = "0.8.35"
+jni = "0.21.1"
+objc2 = "0.6.3"
+objc2-app-kit = "0.3.2"
+objc2-foundation = "0.3.2"
+tracing = {version = "0.1.41", default-features = false}
+tracing-logcat = "0.1.0"
+tracing-oslog = "0.3.0"
+tracing-subscriber = "0.3.20"
+windows = "0.62.2"
+
+[workspace]
+default-members = ["examples/desktop"]
+members = ["examples/android", "examples/desktop", "examples/ios"]
+resolver = "3"

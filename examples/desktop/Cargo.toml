@@ -1,0 +1,14 @@
+[package]
+name = "compo-platform-loop-desktop-example"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[[example]]
+name = "hello"
+path = "../hello.rs"
+
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+compo.workspace = true
+compo-platform-loop.path = "../../"
+tracing.workspace = true

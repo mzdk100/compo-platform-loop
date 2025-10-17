@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="45bc50b1-286a-4d89-bc93-babb1d362a78" name="sscn-macos">
+        <fileTransfer rootFolder="/Users/admin/Desktop" accessType="SFTP" host="sscn-macos" port="22" sshConfigId="cee637f2-8585-4120-a624-f93b922b6791" sshConfig="admin@sscn-macos:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
