@@ -23,23 +23,21 @@ features=["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_LibraryLoader"
 
 [target.'cfg(target_os = "ios")'.dependencies]
 block2.workspace = true
+objc2.workspace = true
 objc2-foundation.workspace = true
-
-[target.'cfg(target_os = "ios")'.dependencies.objc2]
-workspace = true
-features = ["exception"]
+objc2-ui-kit = {workspace = true, optional = true}
 
 [target.'cfg(target_os = "macos")'.dependencies]
 block2.workspace = true
+objc2.workspace = true
 objc2-foundation.workspace = true
-objc2-app-kit.workspace = true
-
-[target.'cfg(target_os = "macos")'.dependencies.objc2]
-workspace = true
-features = ["exception"]
+objc2-app-kit = {workspace = true, optional = true}
 
 [build-dependencies]
 encoding_rs.workspace = true
+
+[features]
+application = ["objc2-app-kit/default", "objc2-ui-kit/default"]
 
 [workspace.package]
 authors = ["SmileSky <mzdk100@qq.com>"]
@@ -47,17 +45,18 @@ categories = ["asynchronous", "gui", "os"]
 edition = "2024"
 keywords = ["compo", "reactive", "declarative", "async", "loop"]
 license = "Apache-2.0"
-version = "0.1.0"
+version = "0.1.1"
 repository = "https://github.com/mzdk100/compo-platform-loop.git"
 
 [workspace.dependencies]
 block2 = "0.6.2"
-compo = "0.1.1"
+compo = "0.1"
 encoding_rs = "0.8.35"
 jni = "0.21.1"
 objc2 = "0.6.3"
 objc2-app-kit = "0.3.2"
 objc2-foundation = "0.3.2"
+objc2-ui-kit = "0.3.2"
 tracing = {version = "0.1.41", default-features = false}
 tracing-logcat = "0.1.0"
 tracing-oslog = "0.3.0"

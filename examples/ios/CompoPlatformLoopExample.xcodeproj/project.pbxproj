@@ -10,6 +10,7 @@
 		8A1234561234567800000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8A1234561234567800000010 /* Assets.xcassets */; };
 		8A1234561234567800000011 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8A1234561234567800000012 /* LaunchScreen.storyboard */; };
 		8A1234561234567800000013 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 8A1234561234567800000014 /* main.m */; };
+		8A1234561234567800000041 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A1234561234567800000040 /* UIKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +22,7 @@
 		8A1234561234567800000022 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		8A1234561234567800000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8A1234561234567800000024 /* RustBinding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RustBinding.h; sourceTree = "<group>"; };
+		8A1234561234567800000040 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -29,6 +31,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				84CD139D2E803F9400B7F7F0 /* libcompo_platform_loop_ios_example.a in Frameworks */,
+				8A1234561234567800000041 /* UIKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -39,6 +42,7 @@
 			isa = PBXGroup;
 			children = (
 				84CD139C2E803F9400B7F7F0 /* libcompo_platform_loop_ios_example.a */,
+				8A1234561234567800000040 /* UIKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
