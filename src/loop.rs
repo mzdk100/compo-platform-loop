@@ -25,8 +25,12 @@ use {
 };
 #[cfg(target_os = "android")]
 use {
-    jni::{JNIEnv, JavaVM, NativeMethod},
-    std::{any::Any, cell::Cell},
+    jni::{AttachGuard, JNIEnv, JavaVM, NativeMethod, errors::Result as JniResult},
+    std::{
+        any::Any,
+        cell::{Cell, RefCell},
+        ptr::null_mut,
+    },
     tracing::error,
 };
 
@@ -37,17 +41,24 @@ use {
     objc2_foundation::{NSRunLoop, NSString, NSTimer},
 };
 
-/// Thread-local storage for Android runtime and component management.
-///
-/// On Android, we use thread-local storage to maintain the Compo runtime and
-/// component instances. This is necessary because Android's JNI callbacks
-/// need access to the runtime from the same thread where it was created.
+// Thread-local storage for Android runtime and component management.
+//
+// On Android, we use thread-local storage to maintain the Compo runtime and
+// component instances. This is necessary because Android's JNI callbacks
+// need access to the runtime from the same thread where it was created.
 #[cfg(target_os = "android")]
 thread_local! {
     /// The Compo runtime instance for processing async tasks
     static RT: Rc<Runtime<'static, ()>> = Rc::new(Runtime::new());
     /// Storage for the root component instance
     static COMPONENT: Cell<Rc<dyn Any>> = Cell::new(Rc::new(()));
+    /// Storage for the JavaVM instance to allow JNI calls from any thread
+    ///
+    /// This is used to store the JavaVM instance obtained during JNI_OnLoad
+    /// so that we can attach threads to the JVM when needed for callbacks.
+    /// The RefCell allows mutable access to the JavaVM instance when attaching
+    /// new threads or performing JNI operations.
+    static JAVA_VM: RefCell<JniResult<JavaVM>> = RefCell::new(unsafe { JavaVM::from_raw(null_mut()) });
 }
 
 /// Handles Windows message processing for the event loop.
@@ -297,6 +308,7 @@ where
     C: Component<'static> + 'static,
     F: AsyncFn(Weak<C>) + 'static,
 {
+    JAVA_VM.set(Ok(vm));
     RT.with(|rt| {
         let rt_weak = Rc::downgrade(rt);
         let c = Rc::new(C::new(rt_weak.clone()));
@@ -306,7 +318,7 @@ where
         rt.spawn(async move { entry(c_weak).await });
         COMPONENT.set(c);
     });
-    if let Ok(mut env) = vm.attach_current_thread() {
+    vm_exec(|mut env| {
         const CLASS: &str = "rust/compo/MainLoop";
         if let Err(e) = env.call_static_method(CLASS, "run", "()V", &[]) {
             error!(?e, "Run failed.");
@@ -319,7 +331,7 @@ where
         if let Err(e) = env.register_native_methods(CLASS, &[method]) {
             error!(?e, "Register native method failed.");
         }
-    }
+    });
 }
 
 /// Native method called from Java to advance the Compo runtime.
@@ -339,4 +351,36 @@ where
 #[cfg(target_os = "android")]
 unsafe extern "C" fn poll_all(_env: JNIEnv) {
     RT.with(|rt| rt.poll_all());
+}
+
+/// Executes a closure with an attached JNI environment.
+///
+/// This function provides thread-safe access to the Java VM environment by:
+/// 1. Borrowing the stored JavaVM instance
+/// 2. Attaching the current thread to the JVM
+/// 3. Executing the provided closure with the attached environment
+///
+/// # Type Parameters
+/// * `F` - Closure type that takes an `AttachGuard` (must be thread-safe)
+///
+/// # Safety
+/// The closure must not perform any operations that could cause thread-local
+/// data corruption or violate JNI safety rules.
+///
+/// # Error Handling
+/// Logs errors if:
+/// - JavaVM is not initialized (must call `run` first)
+/// - Thread attachment fails
+#[cfg(target_os = "android")]
+pub fn vm_exec<F>(f: F)
+where
+    F: for<'a> FnOnce(AttachGuard<'a>),
+{
+    JAVA_VM.with_borrow_mut(move |vm| match vm {
+        Ok(vm) => match vm.attach_current_thread() {
+            Ok(env) => f(env),
+            Err(e) => error!(?e, "Can't attach current thread."),
+        },
+        Err(e) => error!(?e, "Java VM is not initialized, please call the `run` function and set the correct JavaVM first."),
+    })
 }
