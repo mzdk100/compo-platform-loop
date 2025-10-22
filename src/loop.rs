@@ -25,7 +25,10 @@ use {
 };
 #[cfg(target_os = "android")]
 use {
-    jni::{AttachGuard, JNIEnv, JavaVM, NativeMethod, errors::Result as JniResult},
+    jni::{
+        AttachGuard, JNIEnv, JavaVM, NativeMethod,
+        errors::{Error, JniError, Result as JniResult},
+    },
     std::{
         any::Any,
         cell::{Cell, RefCell},
@@ -318,20 +321,19 @@ where
         rt.spawn(async move { entry(c_weak).await });
         COMPONENT.set(c);
     });
-    vm_exec(|mut env| {
+
+    if let Err(e) = vm_exec(|mut env| {
         const CLASS: &str = "rust/compo/MainLoop";
-        if let Err(e) = env.call_static_method(CLASS, "run", "()V", &[]) {
-            error!(?e, "Run failed.");
-        }
+        env.call_static_method(CLASS, "run", "()V", &[])?;
         let method = NativeMethod {
             name: "poll_all".into(),
             sig: "()V".into(),
             fn_ptr: poll_all as *mut _,
         };
-        if let Err(e) = env.register_native_methods(CLASS, &[method]) {
-            error!(?e, "Register native method failed.");
-        }
-    });
+        env.register_native_methods(CLASS, &[method])
+    }) {
+        error!(?e, "Run failed.");
+    }
 }
 
 /// Native method called from Java to advance the Compo runtime.
@@ -353,34 +355,64 @@ unsafe extern "C" fn poll_all(_env: JNIEnv) {
     RT.with(|rt| rt.poll_all());
 }
 
-/// Executes a closure with an attached JNI environment.
+/// Executes a closure with an attached JNI environment, handling all possible JNI errors.
 ///
-/// This function provides thread-safe access to the Java VM environment by:
-/// 1. Borrowing the stored JavaVM instance
+/// This function provides a safe wrapper around JNI operations by:
+/// 1. Borrowing the JavaVM instance from thread-local storage
 /// 2. Attaching the current thread to the JVM
-/// 3. Executing the provided closure with the attached environment
+/// 3. Executing the provided closure with the JNI environment
+/// 4. Properly propagating any JNI errors that occur
 ///
 /// # Type Parameters
-/// * `F` - Closure type that takes an `AttachGuard` (must be thread-safe)
+/// * `F` - The closure type that takes an `AttachGuard` and returns a `JniResult<R>`
+/// * `R` - The result type returned by the closure
 ///
-/// # Safety
-/// The closure must not perform any operations that could cause thread-local
-/// data corruption or violate JNI safety rules.
+/// # Arguments
+/// * `f` - The closure to execute with the JNI environment
 ///
 /// # Error Handling
-/// Logs errors if:
-/// - JavaVM is not initialized (must call `run` first)
-/// - Thread attachment fails
+/// Converts all possible JNI error variants into the unified `JniResult` type,
+/// including thread attachment failures and JNI method invocation errors.
 #[cfg(target_os = "android")]
-pub fn vm_exec<F>(f: F)
+pub fn vm_exec<F, R>(f: F) -> JniResult<R>
 where
-    F: for<'a> FnOnce(AttachGuard<'a>),
+    F: for<'a> FnOnce(AttachGuard<'a>) -> JniResult<R>,
 {
     JAVA_VM.with_borrow_mut(move |vm| match vm {
         Ok(vm) => match vm.attach_current_thread() {
             Ok(env) => f(env),
-            Err(e) => error!(?e, "Can't attach current thread."),
+            Err(e) => Err(e),
         },
-        Err(e) => error!(?e, "Java VM is not initialized, please call the `run` function and set the correct JavaVM first."),
+        Err(e) => Err(match e {
+            Error::WrongJValueType(e1, e2) => Error::WrongJValueType(e1, e2),
+            Error::InvalidCtorReturn => Error::InvalidCtorReturn,
+            Error::InvalidArgList(e) => Error::InvalidArgList(e.to_owned()),
+            Error::MethodNotFound { name, sig } => Error::MethodNotFound {
+                name: name.to_owned(),
+                sig: sig.to_owned(),
+            },
+            Error::FieldNotFound { name, sig } => Error::FieldNotFound {
+                name: name.to_owned(),
+                sig: sig.to_owned(),
+            },
+            Error::JavaException => Error::JavaException,
+            Error::JNIEnvMethodNotFound(e) => Error::JNIEnvMethodNotFound(e),
+            Error::NullPtr(e) => Error::NullPtr(e),
+            Error::NullDeref(e) => Error::NullDeref(e),
+            Error::TryLock => Error::TryLock,
+            Error::JavaVMMethodNotFound(e) => Error::JavaVMMethodNotFound(e),
+            Error::FieldAlreadySet(e) => Error::FieldAlreadySet(e.to_owned()),
+            Error::ThrowFailed(e) => Error::ThrowFailed(e.to_owned()),
+            Error::ParseFailed(e1, e2) => Error::ParseFailed(e1.to_owned(), e2.to_owned()),
+            Error::JniCall(e) => Error::JniCall(match e {
+                JniError::Unknown => JniError::Unknown,
+                JniError::ThreadDetached => JniError::ThreadDetached,
+                JniError::WrongVersion => JniError::WrongVersion,
+                JniError::NoMemory => JniError::NoMemory,
+                JniError::AlreadyCreated => JniError::AlreadyCreated,
+                JniError::InvalidArguments => JniError::InvalidArguments,
+                JniError::Other(e) => JniError::Other(*e),
+            }),
+        }),
     })
 }

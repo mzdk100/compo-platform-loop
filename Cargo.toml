@@ -45,7 +45,7 @@ categories = ["asynchronous", "gui", "os"]
 edition = "2024"
 keywords = ["compo", "reactive", "declarative", "async", "loop"]
 license = "Apache-2.0"
-version = "0.1.2"
+version = "0.1.3"
 repository = "https://github.com/mzdk100/compo-platform-loop.git"
 
 [workspace.dependencies]
